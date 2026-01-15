@@ -1,0 +1,27 @@
+{
+  "shared": {
+    "paths": [
+      "clients/**/*.ts",
+      "fixtures/**/*.ts",
+      "helpers/**/*.ts",
+      "types/**/*.ts",
+      "playwright.config.ts",
+      "package.json",
+      "package-lock.json"
+    ],
+    "tags": [],
+    "deps": []
+  },
+  "posts": {
+    "paths": [
+      "tests/posts/**/*.spec.ts"
+    ],
+    "tags": [
+      "@posts"
+    ],
+    "deps": [
+      "shared"
+    ],
+    "default": true
+  }
+}

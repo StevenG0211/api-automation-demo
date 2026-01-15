@@ -1,0 +1,19 @@
+{
+    "name": "api-automation-demo",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "playwright test",
+        "test:module": "playwright test --grep @MODULE",
+        "test:posts": "playwright test tests/posts",
+        "test:posts:get": "playwright test tests/posts --grep \"@get\"",
+        "test:posts:post": "playwright test tests/posts --grep \"@post\"",
+        "test:posts:update": "playwright test tests/posts --grep \"@update\"",
+        "test:posts:delete": "playwright test tests/posts --grep \"@delete\""
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.49.0",
+        "typescript": "^5.7.3"
+    }
+}

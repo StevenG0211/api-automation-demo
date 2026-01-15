@@ -1,0 +1,59 @@
+name: PR module tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  resolve-modules:
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.set-modules.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Collect changed files
+        id: changes
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          git diff --name-only "origin/${{ github.base_ref }}"...HEAD >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve impacted modules
+        id: set-modules
+        run: |
+          echo "${{ steps.changes.outputs.files }}" | node scripts/resolve-modules.js > modules.json
+          echo "modules=$(cat modules.json)" >> "$GITHUB_OUTPUT"
+
+  module-tests:
+    needs: resolve-modules
+    if: ${{ needs.resolve-modules.outputs.modules != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.resolve-modules.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Run module tests
+        env:
+          MODULE: ${{ matrix.module }}
+        run: npm run test:module

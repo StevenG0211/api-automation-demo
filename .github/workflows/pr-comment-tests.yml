@@ -1,0 +1,52 @@
+name: PR comment module tests
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  comment-tests:
+    if: ${{ github.event.issue.pull_request != null }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse command
+        id: parse
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          node -e "const body = process.env.BODY || ''; const runMatch = body.match(/\\/run\\b[^\\n]*/); const moduleMatch = body.match(/module=([a-zA-Z0-9_-]+)/); if (!runMatch || !moduleMatch) { console.log('skip=true'); process.exit(0); } const scopeMatch = body.match(/scope=([a-zA-Z0-9_-]+)/); console.log('skip=false'); console.log('module=' + moduleMatch[1]); if (scopeMatch) console.log('scope=' + scopeMatch[1]);" >> \"$GITHUB_OUTPUT\"
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.parse.outputs.skip != 'true' }}
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.parse.outputs.skip != 'true' }}
+        with:
+          node-version: 20
+
+      - run: npm ci
+        if: ${{ steps.parse.outputs.skip != 'true' }}
+
+      - name: Validate module
+        if: ${{ steps.parse.outputs.skip != 'true' }}
+        env:
+          MODULE: ${{ steps.parse.outputs.module }}
+        run: |
+          node -e "const fs = require('fs'); const map = JSON.parse(fs.readFileSync('tests/module-map.json', 'utf8')); const moduleName = process.env.MODULE; const entry = map[moduleName]; if (!entry) { console.error('Unknown module: ' + moduleName); process.exit(1); } if (!entry.tags || entry.tags.length === 0) { console.error('Module has no tags to run: ' + moduleName); process.exit(1); }"
+
+      - name: Build grep
+        id: grep
+        if: ${{ steps.parse.outputs.skip != 'true' }}
+        env:
+          MODULE: ${{ steps.parse.outputs.module }}
+          SCOPE: ${{ steps.parse.outputs.scope }}
+        run: |
+          node -e "const fs = require('fs'); const map = JSON.parse(fs.readFileSync('tests/module-map.json', 'utf8')); const moduleName = process.env.MODULE; const scope = process.env.SCOPE || ''; const tag = map[moduleName].tags[0]; const grep = scope ? `(?=.*${tag})(?=.*@${scope})` : tag; console.log('grep=' + grep);" >> \"$GITHUB_OUTPUT\"
+
+      - name: Run module tests
+        if: ${{ steps.parse.outputs.skip != 'true' }}
+        run: npx playwright test --grep "${{ steps.grep.outputs.grep }}"
