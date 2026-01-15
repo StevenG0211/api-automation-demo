@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "test": "playwright test",
-        "test:module": "playwright test --grep @MODULE",
+        "test:module": "playwright test --grep @${MODULE}",
         "test:posts": "playwright test tests/posts",
         "test:posts:get": "playwright test tests/posts --grep \"@get\"",
         "test:posts:post": "playwright test tests/posts --grep \"@post\"",
