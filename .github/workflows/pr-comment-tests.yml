@@ -18,7 +18,23 @@ jobs:
         env:
           BODY: ${{ github.event.comment.body }}
         run: |
-          node -e "const body = process.env.BODY || ''; const runMatch = body.match(/\\/run\\b[^\\n]*/); const moduleMatch = body.match(/module=([a-zA-Z0-9_-]+)/); if (!runMatch || !moduleMatch) { console.log('skip=true'); process.exit(0); } const scopeMatch = body.match(/scope=([a-zA-Z0-9_-]+)/); console.log('skip=false'); console.log('module=' + moduleMatch[1]); if (scopeMatch) console.log('scope=' + scopeMatch[1]);" >> \"$GITHUB_OUTPUT\"
+          mkdir -p "$(dirname "$GITHUB_OUTPUT")"
+          body="${BODY:-}"
+          if ! echo "$body" | grep -qE '/run\b'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          module=$(echo "$body" | sed -nE 's/.*module=([a-zA-Z0-9_-]+).*/\1/p' | head -n1)
+          if [ -z "$module" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          scope=$(echo "$body" | sed -nE 's/.*scope=([a-zA-Z0-9_-]+).*/\1/p' | head -n1)
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "module=$module" >> "$GITHUB_OUTPUT"
+          if [ -n "$scope" ]; then
+            echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/checkout@v4
         if: ${{ steps.parse.outputs.skip != 'true' }}
@@ -45,7 +61,8 @@ jobs:
           MODULE: ${{ steps.parse.outputs.module }}
           SCOPE: ${{ steps.parse.outputs.scope }}
         run: |
-          node -e "const fs = require('fs'); const map = JSON.parse(fs.readFileSync('tests/module-map.json', 'utf8')); const moduleName = process.env.MODULE; const scope = process.env.SCOPE || ''; const tag = map[moduleName].tags[0]; const grep = scope ? `(?=.*${tag})(?=.*@${scope})` : tag; console.log('grep=' + grep);" >> \"$GITHUB_OUTPUT\"
+          mkdir -p "$(dirname "$GITHUB_OUTPUT")"
+          node -e "const fs = require('fs'); const map = JSON.parse(fs.readFileSync('tests/module-map.json', 'utf8')); const moduleName = process.env.MODULE; const scope = process.env.SCOPE || ''; const tag = map[moduleName].tags[0]; const grep = scope ? `(?=.*${tag})(?=.*@${scope})` : tag; console.log('grep=' + grep);" >> "$GITHUB_OUTPUT"
 
       - name: Run module tests
         if: ${{ steps.parse.outputs.skip != 'true' }}
