@@ -62,7 +62,7 @@ jobs:
           SCOPE: ${{ steps.parse.outputs.scope }}
         run: |
           mkdir -p "$(dirname "$GITHUB_OUTPUT")"
-          node -e "const fs = require('fs'); const map = JSON.parse(fs.readFileSync('tests/module-map.json', 'utf8')); const moduleName = process.env.MODULE; const scope = process.env.SCOPE || ''; const tag = map[moduleName].tags[0]; const grep = scope ? `(?=.*${tag})(?=.*@${scope})` : tag; console.log('grep=' + grep);" >> "$GITHUB_OUTPUT"
+          node -e "const fs = require('fs'); const map = JSON.parse(fs.readFileSync('tests/module-map.json', 'utf8')); const moduleName = process.env.MODULE; const scope = process.env.SCOPE || ''; const tag = map[moduleName].tags[0]; const grep = scope ? '(?=.*' + tag + ')(?=.*@' + scope + ')' : tag; console.log('grep=' + grep);" >> "$GITHUB_OUTPUT"
 
       - name: Run module tests
         if: ${{ steps.parse.outputs.skip != 'true' }}
