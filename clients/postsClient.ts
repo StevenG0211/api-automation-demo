@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test';
 import type { BaseClient } from './baseClient';
 import type { Post, PostInput } from '../types/posts';
 import { expectPostShape, expectStatus } from '../helpers/validators';
@@ -7,6 +8,13 @@ export class PostsClient {
 
   constructor(baseClient: BaseClient) {
     this.baseClient = baseClient;
+  }
+
+  async getAll(): Promise<Post[]> {
+    const response = await this.baseClient.get<Post[]>('/posts');
+    expectStatus(response, 200);
+    expect(Array.isArray(response.data)).toBe(true);
+    return response.data.map((post) => expectPostShape(post));
   }
 
   async get(id: number): Promise<Post> {
